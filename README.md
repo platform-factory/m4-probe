@@ -490,3 +490,4 @@ in the clean re-run (`systems` PR #4, commit `1df1030`).
 repo changed for either move, which is the point — the namespace, the registry
 repository, the image paths and this service's own identity all belong to the
 System, not to the team.
+<!-- p1 probe -->
