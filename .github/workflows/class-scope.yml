@@ -1,0 +1,46 @@
+# P2's stand-in for class-scope: the trigger, filter, types and job name of
+# ADR-0024 §5, with a verdict a person can flip by a label.
+#
+# It answers where a pull_request_target check run attaches and whether it
+# blocks; it never checks out or runs pull request code. It passes only when
+# the pull request carries the label `probe-green`, so one head can be made
+# red and then green without a push.
+name: class-scope
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  class-scope:
+    name: class-scope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # pull-requests: write only for the label removal below, which answers
+    # who GitHub records as the actor of a removal made with the workflow's
+    # own token (review finding m5): class-scope's synchronize removal and
+    # factory/state.py both rely on it being github-actions[bot].
+    permissions:
+      pull-requests: write
+    steps:
+      - name: remove probe-remove on a push
+        if: github.event.action == 'synchronize'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # A 404 means the label was not on the pull request.
+          gh api -X DELETE "repos/${REPO}/issues/${PR}/labels/probe-remove" || true
+
+      - name: decide
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GREEN: ${{ contains(github.event.pull_request.labels.*.name, 'probe-green') }}
+        run: |
+          echo "head ${HEAD_SHA} base ${BASE_REF} green ${GREEN} sha-of-run ${GITHUB_SHA}"
+          test "$GREEN" = "true"
