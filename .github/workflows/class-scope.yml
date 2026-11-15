@@ -70,6 +70,12 @@ jobs:
           # that queue item. A repository variable, which the agent App
           # cannot set; empty or unset is off.
           M4_FORCE_INCONCLUSIVE: ${{ vars.M4_FORCE_INCONCLUSIVE }}
+          # Probe P4 only (this repository is the throwaway one): read the P4
+          # run record and the P4 copy of the class file, so neither the
+          # `records` branch nor `classes/` in the controls repository gains
+          # anything from a probe.
+          RECORDS_BRANCH: records-p4
+          CLASS_FILE_PATH: probe/p4-class.yaml
         run: >-
           python3 -I .github/class-scope/class_scope.py
           --event "$GITHUB_EVENT_PATH"
