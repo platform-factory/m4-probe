@@ -1,0 +1,46 @@
+# A probe, not part of M4's machinery: can a workflow's own GITHUB_TOKEN
+# start another workflow, and start itself again?
+#
+# Why: GitHub starts no `schedule` run in this organisation (see
+# schedule-probe.yml). If a job holding only `actions: write` can dispatch
+# workflows, a clock workflow can stand in for the schedules. This run
+# dispatches schedule-probe.yml, waits a minute, and dispatches itself once
+# more with a lower count. It is removed once the answer is recorded.
+name: clock-probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      left:
+        description: "how many more times to dispatch itself"
+        required: false
+        default: "1"
+
+permissions: {}
+
+concurrency:
+  group: clock-probe
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    name: tick
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write    # dispatch a workflow in this repository
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      LEFT: ${{ inputs.left }}
+    steps:
+      - run: |
+          echo "actor ${GITHUB_ACTOR}, triggering actor ${GITHUB_TRIGGERING_ACTOR}, left ${LEFT}"
+          gh workflow run schedule-probe.yml --ref main
+          sleep 60
+          case "$LEFT" in
+            ''|*[!0-9]*) echo "left is not a number: stop"; exit 0 ;;
+          esac
+          if [ "$LEFT" -gt 0 ]; then
+            gh workflow run clock-probe.yml --ref main -f left=$((LEFT - 1))
+          fi
