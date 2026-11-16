@@ -1,0 +1,24 @@
+# A probe, not part of M4's machinery: does a scheduled workflow start at all
+# in this organisation?
+#
+# Why: in factory-controls the detector's ten-minute schedule was live for
+# more than two hours on 2026-11-15/16 and no run with event `schedule` ever
+# started. The detector and the agent's workflow both depend on schedules.
+# This job does nothing; it only shows whether GitHub starts it. It is
+# removed once the answer is recorded.
+name: schedule-probe
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  tick:
+    name: tick
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: echo "event ${GITHUB_EVENT_NAME} at $(date -u +%FT%TZ)"
